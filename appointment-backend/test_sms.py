@@ -21,3 +21,4 @@ message = client.messages.create(
 )
 
 print("Message SID:", message.sid)
+print("Message Body:", message.body)
