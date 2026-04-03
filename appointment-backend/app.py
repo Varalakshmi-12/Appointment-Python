@@ -5,6 +5,28 @@ from twilio.rest import Client
 from dotenv import load_dotenv
 import os
 
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import os
+
+def send_email(to, subject, body):
+    msg = MIMEMultipart()
+    msg['From'] = os.getenv("EMAIL_USER")
+    msg['To'] = to
+    msg['Subject'] = subject
+
+    msg.attach(MIMEText(body, 'plain'))
+
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.starttls()
+    server.login(os.getenv("EMAIL_USER"), os.getenv("EMAIL_PASS"))
+    server.sendmail(msg['From'], msg['To'], msg.as_string())
+    server.quit()
+
+    print("Email sent to:", to)
+
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -55,6 +77,15 @@ def test():
 def test_sms():
     send_sms("+15103645765", "Test message from you system!")
     return "SMS sent!"
+@app.route('/test-email')
+def test_email():
+    send_email(
+        "pandu.chetan27@gmail.com", 
+        "Test Email", 
+        "This is a test email from your appointment backend."
+    )
+    return "Email sent!"
+
 
 
 # -----------------------------
@@ -91,6 +122,12 @@ def create_appointment():
             data["patient_phone"],
             f"Hello {data['patient_name']}, your appointment is confirmed for {data['appointment_time']}."
         )
+
+        send_email(
+        data['patient_email'],
+        "Appointment Confirmation",
+        f"Hello {data['patient_name']}, your appointment with {data['provider_name']} is confirmed for {data['appointment_time']}."
+    )
 
         cursor.close()
         conn.close()
@@ -171,6 +208,11 @@ def update_appointment(id):
 
         cursor.execute(sql, values)
         conn.commit()
+        send_email(
+        data['patient_email'],
+        "Appointment updated Confirmation",
+        f"Hello {data['patient_name']}, your appointment with {data['provider_name']} is confirmed for {data['appointment_time']}."
+    )
 
         updated = cursor.rowcount  # check BEFORE closing cursor
 
